@@ -122,8 +122,8 @@ def main():
     print("-" * 10, "TEE millionaire: device vs manual (end-to-end IR)", "-" * 10)
     # Create simulator with TEE bindings
     tee_bindings = {
-        "tee.quote_gen": "mock_tee.quote_gen",
-        "tee.attest": "mock_tee.attest",
+        "tee.quote_gen": "tee.quote_gen",
+        "tee.attest": "tee.attest",
     }
     # Apply tee_bindings per-node (preferred) then construct Simulator
     for n in cluster_spec.nodes.values():
