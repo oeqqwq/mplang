@@ -37,11 +37,11 @@ def _ensure_impl_imported() -> None:
         return
     from mplang.kernels import builtin as _impl_builtin  # noqa: F401
     from mplang.kernels import crypto as _impl_crypto  # noqa: F401
-    from mplang.kernels import mock_tee as _impl_tee  # noqa: F401
     from mplang.kernels import phe as _impl_phe  # noqa: F401
     from mplang.kernels import spu as _impl_spu  # noqa: F401
     from mplang.kernels import sql_duckdb as _impl_sql_duckdb  # noqa: F401
     from mplang.kernels import stablehlo as _impl_stablehlo  # noqa: F401
+    from mplang.kernels import tee as _impl_tee  # noqa: F401
 
     _IMPL_IMPORTED = True
 
