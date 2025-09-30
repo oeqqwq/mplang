@@ -14,6 +14,8 @@
 
 from __future__ import annotations
 
+import json
+
 import numpy as np
 import trustflow.attestation.verification as verification
 from numpy.typing import NDArray
@@ -32,15 +34,22 @@ from mplang.utils.crypto import blake2b
 
 def _build_quote(pk: NDArray, report_json: str) -> NDArray:
     # Enhanced quote structure:
-    # 1-byte header + 32-byte pk + report json bytes
+    # 1-byte header + 32-byte pk + platform info + report json bytes
     header = np.array([2], dtype=np.uint8)
     pk32 = np.asarray(pk, dtype=np.uint8).reshape(32)
 
+    # Add platform identifier to the quote data
+    report_obj = json.loads(report_json)
+    platform = str(report_obj["str_tee_platform"])
+
+    platform_info = f"platform={platform.upper()};"
+    platform_info_bytes = np.frombuffer(platform_info.encode("utf-8"), dtype=np.uint8)
     report_bytes = np.frombuffer(report_json.encode("utf-8"), dtype=np.uint8)
 
     ret: np.ndarray = np.concatenate([
         header,
         pk32,
+        platform_info_bytes,
         report_bytes,
     ]).astype(np.uint8)
     return ret
@@ -74,23 +83,35 @@ def _tee_attest(pfunc: PFunction, quote: object) -> NDArray[np.uint8]:
     quote = np.asarray(quote, dtype=np.uint8)
     if quote.size < 33:
         raise ValueError(
-            "quote must be at least 33 bytes (1 header + 32 pk + report_json)"
+            "quote must be at least 33 bytes "
+            "(1 header + 32 pk + platform info + report)"
         )
     if quote[0] != 2:
         raise ValueError("invalid quote header")
     pk = quote[1:33].astype(np.uint8)
 
-    report_json = quote[33:].tobytes().decode("utf-8")
+    # Parse platform info and report from the remaining data
+    remaining_data = quote[33:].tobytes().decode("utf-8")
 
-    report = AttestationReport.from_json(report_json)
+    # Extract platform info (format: "platform=XXX;")
+    platform_end = remaining_data.find(";")
+    if platform_end == -1:
+        raise ValueError("invalid platform info format in quote")
+    platform_info = remaining_data[: platform_end + 1]
 
+    # Extract platform from platform_info
+    if not platform_info.startswith("platform="):
+        raise ValueError("invalid platform info prefix in quote")
+    platform = platform_info[9:-1]  # Remove "platform=" and ";"
     # Verify the attestation report with platform-specific settings
-    platform: str = pfunc.attrs.get("platform", None).upper()
     if platform.upper() not in ["TDX", "SGX", "CSV"]:
         raise ValueError(
             f"Unsupported tee platform '{platform}'. Supported platforms: "
             f"['TDX', 'SGX', 'CSV']"
         )
+
+    report_json = remaining_data[platform_end + 1 :]
+    report = AttestationReport.from_json(report_json)
 
     attrs = AttestationAttribute(
         str_tee_platform=platform.upper(),
