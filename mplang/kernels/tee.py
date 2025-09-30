@@ -85,15 +85,15 @@ def _tee_attest(pfunc: PFunction, quote: object) -> NDArray[np.uint8]:
     report = AttestationReport.from_json(report_json)
 
     # Verify the attestation report with platform-specific settings
-    platform = pfunc.attrs.get("platform", None).upper()
-    if platform not in ["TDX", "SGX", "CSV"]:
+    platform: str = pfunc.attrs.get("platform", None).upper()
+    if platform.upper() not in ["TDX", "SGX", "CSV"]:
         raise ValueError(
             f"Unsupported tee platform '{platform}'. Supported platforms: "
             f"['TDX', 'SGX', 'CSV']"
         )
 
     attrs = AttestationAttribute(
-        str_tee_platform=platform,
+        str_tee_platform=platform.upper(),
         hex_user_data=blake2b(pk.tobytes()).hex(),
     )
     status = verification.report_verify(
