@@ -99,6 +99,8 @@ def _tee_attest(pfunc: PFunction, quote: object) -> NDArray[np.uint8]:
         raise ValueError("invalid platform info format in quote")
     platform_info = remaining_data[: platform_end + 1]
 
+    print(f"Platform info extracted from quote: {platform_info}")
+
     # Extract platform from platform_info
     if not platform_info.startswith("platform="):
         raise ValueError("invalid platform info prefix in quote")
